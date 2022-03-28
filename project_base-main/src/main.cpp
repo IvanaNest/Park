@@ -83,6 +83,7 @@ int main()
     Shader lightShader("resources/shaders/light.vs", "resources/shaders/light.fs");
     Shader screenShader("resources/shaders/screen.vs", "resources/shaders/screen.fs");
     Shader grassShader("resources/shaders/blending.vs", "resources/shaders/blending.fs");
+    Shader nShader("resources/shaders/4.normal_mapping.vs","resources/shaders/4.normal_mapping.fs");
     // models
     Model benchModel(FileSystem::getPath("resources/objects/bench/bank.obj"));
     Model lightModel1(FileSystem::getPath("resources/objects/firefly/19910_firefly_V1.obj"));
@@ -184,8 +185,15 @@ int main()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     screenShader.setInt("screenTexture", 0);
-
-    unsigned int floorDiffTexture = TextureFromFile("ground020.jpg", "resources/objects/floor");
+    //unsigned int floorDiffTexture = TextureFromFile("grass01.jpg", "resources/objects/floor");
+    unsigned int floorDiffTexture = loadTexture(FileSystem::getPath("resources/objects/floor/grass01.jpg").c_str());
+    //unsigned int floorNormTexture  = loadTexture(FileSystem::getPath("resources/objects/floor/grass01_n.jpg").c_str());
+    //normal-mapping
+    unsigned int diffuseMap = loadTexture(FileSystem::getPath("resources/textures/brickwall.jpg").c_str());
+    unsigned int normalMap  = loadTexture(FileSystem::getPath("resources/textures/brickwall_normal.jpg").c_str());
+    nShader.use();
+    nShader.setInt("diffuseMap", 0);
+    nShader.setInt("normalMap", 1);
 
 
     // transparent VAO
@@ -241,11 +249,11 @@ int main()
 
         set_light(lightModel1, lightShader, pointLightPositions[0],
                   glm::radians((float)(5.0 * sin(5.0 + 2*glfwGetTime()))),
-                  glm::vec3(5.0 * cos(1.0 + 1*glfwGetTime()), 1.0 * sin(2.0 + 1*glfwGetTime()), 5.0 * sin(2.0 + 1*glfwGetTime())));
+                  glm::vec3(5.0 * cos(1.0 + 1*glfwGetTime()), 1.0 * sin(2.0 + 1*glfwGetTime()), 12.0 * sin(3.0 + 0.4*glfwGetTime())));
 
         set_light(lightModel1, lightShader, pointLightPositions[1],
                   glm::radians((float)(5.0 * sin(5.0 + 2*glfwGetTime()))),
-                  glm::vec3(6.0 + cos(1.0 + 1*glfwGetTime()), 1.0 * sin(2.0 + 1*glfwGetTime()), 5.0 * sin(2.0 + 1*glfwGetTime())));
+                  glm::vec3(6.0 + cos(1.0 + 1*glfwGetTime()), 1.0 * sin(2.0 + 1*glfwGetTime()), 12.0 * sin(3.0 + 0.4*glfwGetTime())));
 
         objectShader.use();
         objectShader.setMat4("projection", projection);
@@ -260,22 +268,21 @@ int main()
 
         // bench
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(1.8f, -5.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(1.8f, -5.0f, 3.0f));
         model = glm::scale(model, glm::vec3(0.2f, 0.15f, 0.15f));
         //model = glm::rotate(model, -1.5f,glm::vec3(0.0f, 1.0f, 0.0f));
         objectShader.setMat4("model", model);
         benchModel.Draw(objectShader);
 
         //trees
-        draw_three(three, objectShader, glm::vec3(1.5f,-4.8f, -10.0f));
-        draw_three(three, objectShader, glm::vec3(11.5f,-4.8f, -10.0f));
-        draw_three(three, objectShader, glm::vec3(-8.5f,-4.8f, -10.0f));
+        draw_three(three, objectShader, glm::vec3(1.5f,-4.8f, -8.0f));
+        draw_three(three, objectShader, glm::vec3(11.5f,-4.8f, -8.0f));
+        draw_three(three, objectShader, glm::vec3(-8.5f,-4.8f, -8.0f));
 
         //floor
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, floorDiffTexture);
-        //glActiveTexture(GL_TEXTURE1);
-        //glBindTexture(GL_TEXTURE_2D, floorSpecTexture);
+
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, -5.0f, 0.0f));
@@ -283,7 +290,6 @@ int main()
         objectShader.setMat4("model", model);
         glBindVertexArray(floorVAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
 
         // vegetation
         grassShader.use();
@@ -300,6 +306,22 @@ int main()
             grassShader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
+ /*     nShader.use();
+        nShader.setMat4("projection", projection);
+        nShader.setMat4("view", view);
+
+        // render normal-mapped quad
+        //model = glm::rotate(model, glm::radians(91.5f), glm::vec3(1.0, 0.0, 0.0)); // rotate the quad to show normal mapping from multiple directions
+        model = glm::scale(model, glm::vec3(1.5f,1.5f,0.2f));
+        //model = glm::translate(model, glm::vec3(0.0f,0.0f,-15.0f));
+        nShader.setMat4("model", model);
+        nShader.setVec3("viewPos", camera.Position);
+        nShader.setVec3("lightPos", pointLightPositions[0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, normalMap);
+        renderQuad();   */
 
         // 1. draw scene as normal in multisampled buffers
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -434,7 +456,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         Spotlight = !Spotlight;
     }
 
-    if (key == GLFW_KEY_H && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_G && action == GLFW_PRESS) {
         effect = !effect;
     }
 
